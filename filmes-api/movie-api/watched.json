@@ -1,12 +1,5 @@
 [
   {
-    "title": "Como Treinar o Seu Dragão",
-    "year": 2025,
-    "posterURL": "/dw7Tw4EvonhLCso2rzMVe28OYzo.jpg",
-    "tmdbId": 1087192,
-    "id": 5
-  },
-  {
     "title": "Harry Potter e a Ordem da Fênix",
     "year": 2007,
     "posterURL": "/tIf9aUyNljda9MG1pjlOLHCZ3b0.jpg",
@@ -89,5 +82,12 @@
     "posterURL": "/yQGaui0bQ5Ai3KIFBB45nTeIqad.jpg",
     "tmdbId": 1412113,
     "id": 32
+  },
+  {
+    "title": "Lilo & Stitch",
+    "year": 2025,
+    "posterURL": "/bLQN6DUNYN4NVzSY3Q53JwBRlgV.jpg",
+    "tmdbId": 552524,
+    "id": 42
   }
 ]

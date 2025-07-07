@@ -7,13 +7,6 @@
     "id": 15
   },
   {
-    "title": "Jurassic World: Recomeço",
-    "year": 2025,
-    "posterURL": "/g81Wxr9rskMsmKx3RoPZP6PnlkX.jpg",
-    "tmdbId": 1234821,
-    "id": 23
-  },
-  {
     "title": "Guerreiras do K-Pop",
     "year": 2025,
     "posterURL": "/iJSqkmLwgqj9MwARySBXMkYO7mG.jpg",
@@ -26,13 +19,6 @@
     "posterURL": "/8OP3h80BzIDgmMNANVaYlQ6H4Oc.jpg",
     "tmdbId": 1311844,
     "id": 27
-  },
-  {
-    "title": "Faça Ela Voltar",
-    "year": 2025,
-    "posterURL": "/yknXRPGfIMmRbWVUxfPuLyCcx7h.jpg",
-    "tmdbId": 1151031,
-    "id": 28
   },
   {
     "title": "K.O.",
@@ -61,5 +47,33 @@
     "posterURL": "/wqfu3bPLJaEWJVk3QOm0rKhxf1A.jpg",
     "tmdbId": 846422,
     "id": 40
+  },
+  {
+    "title": "Até a Última Gota",
+    "year": 2025,
+    "posterURL": "/t3nmSPWX5MOKdpAuTb2t5g69BT3.jpg",
+    "tmdbId": 1426776,
+    "id": 41
+  },
+  {
+    "title": "Bailarina - Do Universo de John Wick",
+    "year": 2025,
+    "posterURL": "/by5hjYJp3OJ8GW118kPeURp1rFo.jpg",
+    "tmdbId": 541671,
+    "id": 43
+  },
+  {
+    "title": "Jurassic World: Recomeço",
+    "year": 2025,
+    "posterURL": "/g81Wxr9rskMsmKx3RoPZP6PnlkX.jpg",
+    "tmdbId": 1234821,
+    "id": 44
+  },
+  {
+    "title": "Faça Ela Voltar",
+    "year": 2025,
+    "posterURL": "/yknXRPGfIMmRbWVUxfPuLyCcx7h.jpg",
+    "tmdbId": 1151031,
+    "id": 45
   }
 ]

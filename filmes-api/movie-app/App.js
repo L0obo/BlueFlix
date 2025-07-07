@@ -6,10 +6,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './src/styles/colors';
 
-// Importa a tela de termos
 import TermsScreen from './src/screens/TermsScreen';
-
-// Importa as telas principais do aplicativo
 import HomeScreen from './src/screens/HomeScreen';
 import ListFilmsScreen from './src/screens/ListFilmsScreen';
 import ViewMovieScreen from './src/screens/ViewMovieScreen';
@@ -22,7 +19,6 @@ import MarkAsWatchedScreen from './src/screens/MarkAsWatchedScreen';
 
 const Stack = createNativeStackNavigator();
 
-// Componente que contém a navegação principal do aplicativo
 function AppNavigator() {
   return (
     <NavigationContainer>
@@ -33,13 +29,13 @@ function AppNavigator() {
           headerTitleStyle: { fontWeight: 'bold' },
           contentStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
+          // --- ALTERAÇÃO APLICADA AQUI ---
+          // Remove a animação de deslize lateral
+          animation: 'none',
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-        
-        {/* Garante que a rota "Descobrir Filmes" aponta para o componente correto */}
         <Stack.Screen name="Descobrir Filmes" component={ListFilmsScreen} /> 
-        
         <Stack.Screen name="Meus Filmes Salvos" component={ViewMovieScreen} options={{ title: "Minha Galeria" }} />
         <Stack.Screen name="Vale a pena ver de novo" component={ValeAPenaVerDeNovoScreen} />
         <Stack.Screen name="Detalhes do Filme" component={MovieDetailsScreen} options={{ headerTransparent: true, title: '' }} />
@@ -52,7 +48,6 @@ function AppNavigator() {
   );
 }
 
-// Componente principal que decide o que renderizar
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
