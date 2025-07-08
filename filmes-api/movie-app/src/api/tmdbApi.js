@@ -5,15 +5,14 @@ const API_KEY = '8635a035220d7254334115b63891956b';
 const API_BASE_URL = 'https://api.themoviedb.org/3';
 export const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
-// --- FUNÇÃO DE DESCOBERTA ATUALIZADA ---
-// Agora aceita um objeto de filtros
+// Busca filmes com base em vários filtros (género, nota, idade)
 export const discoverMovies = async (filters = {}) => {
   const { genreId, rating, ageRating, page = 1 } = filters;
   let queryParams = `api_key=${API_KEY}&language=pt-BR&page=${page}&sort_by=popularity.desc`;
 
   if (genreId) queryParams += `&with_genres=${genreId}`;
   if (rating) queryParams += `&vote_average.gte=${rating}`;
-  if (ageRating) queryParams += `&certification_country=BR&certification.lte=${ageRating}`;
+  if (ageRating) queryParams += `&certification_country=BR&certification=${ageRating}`;
 
   try {
     const url = `${API_BASE_URL}/discover/movie?${queryParams}`;
@@ -26,6 +25,7 @@ export const discoverMovies = async (filters = {}) => {
   }
 };
 
+// Busca filmes por texto
 export const searchMovies = async (query, page = 1) => {
     if (!query) return [];
     try {
@@ -39,6 +39,7 @@ export const searchMovies = async (query, page = 1) => {
     }
 };
 
+// Busca a lista de todos os géneros
 export const getGenres = async () => {
     try {
         const url = `${API_BASE_URL}/genre/movie/list?api_key=${API_KEY}&language=pt-BR`;
@@ -51,6 +52,7 @@ export const getGenres = async () => {
     }
 };
 
+// Busca os detalhes completos de um filme
 export const getMovieDetails = async (movieId) => {
     try {
         const url = `${API_BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=pt-BR`;
@@ -64,6 +66,7 @@ export const getMovieDetails = async (movieId) => {
     }
 };
 
+// Busca os vídeos (trailers) de um filme
 export const getMovieVideos = async (movieId) => {
     try {
         const url = `${API_BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}&language=pt-BR`;
@@ -78,6 +81,7 @@ export const getMovieVideos = async (movieId) => {
     }
 };
 
+// Busca onde o filme está disponível para assistir
 export const getWatchProviders = async (movieId) => {
     try {
         const url = `${API_BASE_URL}/movie/${movieId}/watch/providers?api_key=${API_KEY}`;

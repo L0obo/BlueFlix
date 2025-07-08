@@ -19,9 +19,10 @@ export default function ViewMovieScreen({ navigation }) {
   const [recommendedMovie, setRecommendedMovie] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isMovingMovie, setIsMovingMovie] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchSavedMovies = useCallback(async () => {
-    setLoading(true);
+    if (!isRefreshing) setLoading(true);
     try {
       const moviesFromApi = await getMovies();
       setAllMovies(moviesFromApi);
@@ -30,13 +31,14 @@ export default function ViewMovieScreen({ navigation }) {
       console.error("Erro ao buscar filmes salvos:", error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  }, []);
+  }, [isRefreshing]);
 
+  // Busca os dados na primeira vez que o ecrã é montado
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchSavedMovies);
-    return unsubscribe;
-  }, [navigation, fetchSavedMovies]);
+    fetchSavedMovies();
+  }, []);
 
   useEffect(() => {
     if (searchQuery === '') {
@@ -84,6 +86,11 @@ export default function ViewMovieScreen({ navigation }) {
     }
   };
 
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    fetchSavedMovies();
+  }, [fetchSavedMovies]);
+
   const renderContent = () => {
     if (loading) {
         return (
@@ -104,6 +111,8 @@ export default function ViewMovieScreen({ navigation }) {
             numColumns={2}
             columnWrapperStyle={{ justifyContent: 'space-between' }}
             contentContainerStyle={styles.listContainer}
+            onRefresh={handleRefresh}
+            refreshing={isRefreshing}
             ListEmptyComponent={
             <View style={styles.centeredEmpty}>
                 <Text style={styles.emptyText}>Nenhum filme encontrado.</Text>
@@ -178,8 +187,10 @@ export default function ViewMovieScreen({ navigation }) {
             {renderContent()}
         </View>
         
-        {/* --- BOTÃO DE ADICIONAR REMOVIDO --- */}
         <View style={styles.fabContainer}>
+            <TouchableOpacity style={styles.fabButton} onPress={() => navigation.navigate('Novo Filme')}>
+                <Text style={styles.fabIcon}>+</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.fabButton} onPress={() => navigation.goBack()}>
                 <Text style={styles.fabIcon}>‹</Text>
             </TouchableOpacity>
@@ -222,6 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(65, 90, 119, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 15,
     elevation: 8,
   },
   fabIcon: {

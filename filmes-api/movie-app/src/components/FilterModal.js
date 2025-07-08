@@ -1,29 +1,37 @@
 // movie-app/src/components/FilterModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView, TouchableWithoutFeedback } from 'react-native';
 import { colors } from '../styles/colors';
 
 // Opções de filtro pré-definidas
 const RATINGS = [ { label: '7+', value: 7 }, { label: '8+', value: 8 }, { label: '9+', value: 9 }];
 const AGE_RATINGS = [
-    { label: 'Livre', value: 'BR-L' }, { label: '10', value: 'BR-10' }, 
-    { label: '12', value: 'BR-12' }, { label: '14', value: 'BR-14' }, 
-    { label: '16', value: 'BR-16' }, { label: '18', value: 'BR-18' }
+    { label: 'Livre', value: 'L' }, { label: '10', value: '10' }, 
+    { label: '12', value: '12' }, { label: '14', value: '14' }, 
+    { label: '16', value: '16' }, { label: '18', value: '18' }
 ];
 
-export default function FilterModal({ visible, onClose, onApplyFilters }) {
-  const [rating, setRating] = useState(null);
-  const [ageRating, setAgeRating] = useState(null);
+export default function FilterModal({ visible, onClose, onApplyFilters, genres = [], currentFilters }) {
+  const [rating, setRating] = useState(currentFilters.rating);
+  const [ageRating, setAgeRating] = useState(currentFilters.ageRating);
+  const [genreId, setGenreId] = useState(currentFilters.genreId);
+
+  useEffect(() => {
+    setRating(currentFilters.rating);
+    setAgeRating(currentFilters.ageRating);
+    setGenreId(currentFilters.genreId);
+  }, [currentFilters]);
 
   const handleApply = () => {
-    onApplyFilters({ rating, ageRating });
+    onApplyFilters({ rating, ageRating, genreId });
     onClose();
   };
 
   const handleClear = () => {
     setRating(null);
     setAgeRating(null);
-    onApplyFilters({ rating: null, ageRating: null });
+    setGenreId(null);
+    onApplyFilters({ rating: null, ageRating: null, genreId: null });
     onClose();
   };
 
@@ -33,12 +41,12 @@ export default function FilterModal({ visible, onClose, onApplyFilters }) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.optionsContainer}>
         {options.map((option) => (
           <TouchableOpacity
-            key={option.value}
-            style={[styles.optionButton, selectedValue === option.value && styles.optionButtonSelected]}
-            onPress={() => onSelect(selectedValue === option.value ? null : option.value)}
+            key={`${title}-${option.id || option.value}`}
+            style={[styles.optionButton, selectedValue === (option.id || option.value) && styles.optionButtonSelected]}
+            onPress={() => onSelect(selectedValue === (option.id || option.value) ? null : (option.id || option.value))}
           >
-            <Text style={[styles.optionText, selectedValue === option.value && styles.optionTextSelected]}>
-              {option.label}
+            <Text style={[styles.optionText, selectedValue === (option.id || option.value) && styles.optionTextSelected]}>
+              {option.name || option.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -67,8 +75,13 @@ export default function FilterModal({ visible, onClose, onApplyFilters }) {
                 </TouchableOpacity>
               </View>
               
-              {renderFilterSection("Nota Mínima (Estrelas)", RATINGS, rating, setRating)}
-              {renderFilterSection("Classificação Indicativa", AGE_RATINGS, ageRating, setAgeRating)}
+              <View style={{ flex: 1 }}>
+                <ScrollView>
+                    {renderFilterSection("Géneros", genres, genreId, setGenreId)}
+                    {renderFilterSection("Nota Mínima", RATINGS, rating, setRating)}
+                    {renderFilterSection("Classificação Indicativa", AGE_RATINGS, ageRating, setAgeRating)}
+                </ScrollView>
+              </View>
 
               <View style={styles.footerButtons}>
                 <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={handleClear}>
@@ -86,48 +99,19 @@ export default function FilterModal({ visible, onClose, onApplyFilters }) {
 }
 
 const styles = StyleSheet.create({
-  modalContainer: { 
-    flex: 1, 
-    justifyContent: 'flex-end', 
-    backgroundColor: 'rgba(0,0,0,0.5)' 
-  },
+  modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    paddingBottom: 40,
-    height: '50%',
+    height: '65%',
+    flexDirection: 'column',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: colors.accent, 
-    textAlign: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 0,
-    top: -5, // Ajustado para alinhar melhor com o título
-    width: 32,
-    height: 32,
-    borderRadius: 16, // Metade da largura/altura para um círculo perfeito
-    backgroundColor: 'rgba(164, 22, 26, 0.7)', // Vermelho com transparência
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: colors.accent,
-    fontWeight: '900', // Mais forte para destacar o 'X'
-    lineHeight: 18, // Ajuste para centralização vertical
-  },
+  header: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 25 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold', color: colors.accent, textAlign: 'center' },
+  closeButton: { position: 'absolute', right: 0, top: -5, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(164, 22, 26, 0.7)', justifyContent: 'center', alignItems: 'center' },
+  closeButtonText: { fontSize: 16, color: colors.accent, fontWeight: '900', lineHeight: 18 },
   section: { marginBottom: 25 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: colors.secondary, marginBottom: 15 },
   optionsContainer: { paddingRight: 20 },
@@ -146,7 +130,11 @@ const styles = StyleSheet.create({
   footerButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 'auto',
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.primary,
+    // --- ALTERAÇÃO APLICADA AQUI ---
+    marginBottom: 10, // Adiciona uma margem para levantar os botões
   },
   button: { flex: 1, padding: 15, borderRadius: 10, alignItems: 'center' },
   clearButton: { backgroundColor: colors.secondary, marginRight: 10 },

@@ -42,13 +42,6 @@
     "id": 39
   },
   {
-    "title": "The Old Guard 2",
-    "year": 2025,
-    "posterURL": "/wqfu3bPLJaEWJVk3QOm0rKhxf1A.jpg",
-    "tmdbId": 846422,
-    "id": 40
-  },
-  {
     "title": "Até a Última Gota",
     "year": 2025,
     "posterURL": "/t3nmSPWX5MOKdpAuTb2t5g69BT3.jpg",
@@ -56,24 +49,24 @@
     "id": 41
   },
   {
-    "title": "Bailarina - Do Universo de John Wick",
-    "year": 2025,
-    "posterURL": "/by5hjYJp3OJ8GW118kPeURp1rFo.jpg",
-    "tmdbId": 541671,
-    "id": 43
+    "title": "Jurassic World: Reino Ameaçado",
+    "year": 2018,
+    "posterURL": "/7xykpkKqfBfDgEKvS4jqpFF0S4K.jpg",
+    "tmdbId": 351286,
+    "id": 46
   },
   {
     "title": "Jurassic World: Recomeço",
     "year": 2025,
     "posterURL": "/g81Wxr9rskMsmKx3RoPZP6PnlkX.jpg",
     "tmdbId": 1234821,
-    "id": 44
+    "id": 48
   },
   {
-    "title": "Faça Ela Voltar",
+    "title": "The Old Guard 2",
     "year": 2025,
-    "posterURL": "/yknXRPGfIMmRbWVUxfPuLyCcx7h.jpg",
-    "tmdbId": 1151031,
-    "id": 45
+    "posterURL": "/wqfu3bPLJaEWJVk3QOm0rKhxf1A.jpg",
+    "tmdbId": 846422,
+    "id": 50
   }
 ]

@@ -1,7 +1,7 @@
 // movie-app/src/components/AnimatedMoviesBackground.js
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Image, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // <-- IMPORTAÇÃO ADICIONADA
+import { LinearGradient } from 'expo-linear-gradient';
 import { discoverMovies } from '../api/tmdbApi';
 import { IMAGE_BASE_URL } from '../api/tmdbApi';
 import { colors } from '../styles/colors';
@@ -120,6 +120,8 @@ export default function AnimatedMoviesBackground({ children }) {
         )}
       </Animated.View>
       
+      {/* --- CORREÇÃO APLICADA AQUI --- */}
+      {/* O overlay agora é renderizado por baixo do conteúdo (children) */}
       <View style={styles.overlay} />
       {children}
     </View>

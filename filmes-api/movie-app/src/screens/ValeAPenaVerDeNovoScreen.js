@@ -17,14 +17,17 @@ export default function ValeAPenaVerDeNovoScreen({ navigation }) {
   const [recommendedMovie, setRecommendedMovie] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchWatched = useCallback(async () => {
     if (!isRefreshing) setLoading(true);
+    setError(null);
     try {
       const movies = await getWatchedMovies();
       setWatchedMovies(movies);
     } catch (error) {
       console.error("Erro ao buscar filmes assistidos:", error);
+      setError("Não foi possível carregar os seus filmes.");
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -32,9 +35,8 @@ export default function ValeAPenaVerDeNovoScreen({ navigation }) {
   }, [isRefreshing]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchWatched);
-    return unsubscribe;
-  }, [navigation, fetchWatched]);
+    fetchWatched();
+  }, []);
 
   const handleRecommend = () => {
     if (watchedMovies.length > 0) {
@@ -60,6 +62,16 @@ export default function ValeAPenaVerDeNovoScreen({ navigation }) {
               contentContainerStyle={styles.listContainer}
               renderItem={() => <MovieItemSkeleton />}
             />
+        );
+    }
+    if (error) {
+        return (
+            <View style={styles.centeredEmpty}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity onPress={fetchWatched}>
+                    <Text style={styles.retryText}>Tentar Novamente</Text>
+                </TouchableOpacity>
+            </View>
         );
     }
     return (
@@ -155,6 +167,8 @@ const styles = StyleSheet.create({
   modalMovieYear: { fontSize: 16, color: colors.secondary, marginTop: 5, marginBottom: 25 },
   closeButton: { backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 30, elevation: 2 },
   closeButtonText: { color: colors.accent, fontWeight: 'bold', textAlign: 'center', fontSize: 16 },
+  errorText: { color: colors.danger, fontSize: 18, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20, },
+  retryText: { color: colors.accent, fontSize: 16, fontWeight: 'bold', textDecorationLine: 'underline', },
   fabContainer: {
     position: 'absolute',
     bottom: 45,

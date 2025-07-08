@@ -10,7 +10,15 @@ import FilterModal from '../components/FilterModal';
 import { colors } from '../styles/colors';
 
 const ITEM_MARGIN_HORIZONTAL = 12;
-const SKELETON_DATA = Array(8).fill(0);
+const SKELETON_DATA = Array(10).fill(0);
+
+// Componente para o rodapé de carregamento com esqueletos
+const SkeletonFooter = () => (
+  <View style={styles.footerContainer}>
+    <MovieItemSkeleton />
+    <MovieItemSkeleton />
+  </View>
+);
 
 export default function ListFilmsScreen({ navigation }) {
   const [movies, setMovies] = useState([]);
@@ -25,13 +33,15 @@ export default function ListFilmsScreen({ navigation }) {
   const [savingMovieId, setSavingMovieId] = useState(null);
   const [myMovies, setMyMovies] = useState([]);
   const [watchedMovies, setWatchedMovies] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState({
     genreId: null,
     rating: null,
     ageRating: null,
   });
-  const [isRefreshing, setIsRefreshing] = useState(false); // Novo estado para o refresh
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -41,10 +51,7 @@ export default function ListFilmsScreen({ navigation }) {
   }, [searchQuery]);
 
   const fetchInitialData = useCallback(async () => {
-    // Não ativa o loading de esqueleto no refresh, apenas no carregamento inicial
-    if (!isRefreshing) {
-      setInitialLoading(true);
-    }
+    if (!isRefreshing) setInitialLoading(true);
     setError(null);
     try {
       await Promise.all([
@@ -76,17 +83,32 @@ export default function ListFilmsScreen({ navigation }) {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
     setError(null);
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("A busca demorou muito. Verifique a sua conexão.")), 10000)
+    );
+
     try {
-      let results = [];
-      if (query) {
-        results = await searchMovies(query, pageNum);
+      let fetchPromise;
+      const isFilterActive = filters.genreId || filters.rating || filters.ageRating;
+      
+      if (query && !isFilterActive) {
+        fetchPromise = searchMovies(query, pageNum);
       } else {
-        results = await discoverMovies({ ...filters, page: pageNum });
+        fetchPromise = discoverMovies({ ...filters, page: pageNum });
       }
+
+      const results = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (results.length === 0) {
+        setHasMore(false);
+      }
+      
       setMovies(prev => pageNum === 1 ? results : [...prev, ...results]);
     } catch (e) {
-      console.error("Falha ao buscar filmes: ", e);
-      setError("Não foi possível carregar os filmes.");
+      console.error("Falha ao buscar filmes: ", e.message);
+      setError(e.message);
+      setMovies([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -96,37 +118,34 @@ export default function ListFilmsScreen({ navigation }) {
   useEffect(() => {
     if (!initialLoading) {
       setPage(1);
+      setHasMore(true);
       fetchMovies(debouncedSearchQuery, activeFilters, 1);
     }
   }, [debouncedSearchQuery, activeFilters, fetchMovies, initialLoading]);
 
-  // --- NOVA FUNÇÃO PARA ATUALIZAR ---
-  const handleRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    // Limpa os filtros e a busca para uma atualização limpa
-    setSearchQuery('');
-    setActiveFilters({ genreId: null, rating: null, ageRating: null });
-    // O useEffect que depende de activeFilters e debouncedSearchQuery irá buscar os filmes automaticamente
-    fetchInitialData().finally(() => setIsRefreshing(false));
-  }, [fetchInitialData]);
-
   const handleLoadMore = () => {
-    if (loadingMore || loading || initialLoading) return;
+    if (loadingMore || loading || !hasMore) return;
     const newPage = page + 1;
     setPage(newPage);
     fetchMovies(debouncedSearchQuery, activeFilters, newPage);
   };
 
-  const handleSelectGenre = (genreId) => {
-    setSearchQuery('');
-    setActiveFilters(prev => ({ ...prev, genreId, rating: null, ageRating: null }));
-  };
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setPage(1);
+    setHasMore(true);
+    await Promise.all([
+        fetchInitialData(),
+        fetchMovies(debouncedSearchQuery, activeFilters, 1)
+    ]);
+    setIsRefreshing(false);
+  }, [debouncedSearchQuery, activeFilters, fetchInitialData, fetchMovies]);
 
   const handleApplyFilters = (newFilters) => {
-    setSearchQuery('');
-    setActiveFilters(prev => ({ ...prev, ...newFilters }));
+    // A linha setSearchQuery('') foi removida daqui
+    setActiveFilters(newFilters);
   };
-
+  
   const handleSaveMovie = async (movieToSave) => {
     setSavingMovieId(movieToSave.id);
     try {
@@ -193,7 +212,15 @@ export default function ListFilmsScreen({ navigation }) {
         refreshing={isRefreshing}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        ListFooterComponent={loadingMore && <ActivityIndicator style={{ margin: 20 }} color={colors.primary} />}
+        ListFooterComponent={loadingMore && hasMore ? <SkeletonFooter /> : null}
+        ListEmptyComponent={() => (
+            !loading && (
+              <View style={styles.centered}>
+                  <Text style={styles.emptyText}>Nenhum filme encontrado.</Text>
+                  <Text style={styles.emptySubText}>Tente uma busca ou um filtro diferente.</Text>
+              </View>
+            )
+        )}
         renderItem={({ item }) => {
           const isWatched = watchedMovies.some(m => m.tmdbId === item.id);
           const isSaved = myMovies.some(m => m.tmdbId === item.id);
@@ -214,15 +241,6 @@ export default function ListFilmsScreen({ navigation }) {
       />
     );
   };
-  
-  const renderGenre = ({ item }) => (
-    <TouchableOpacity 
-      style={[styles.genreBadge, activeFilters.genreId === item.id && styles.genreBadgeSelected]}
-      onPress={() => handleSelectGenre(item.id)}
-    >
-      <Text style={[styles.genreText, activeFilters.genreId === item.id && styles.genreTextSelected]}>{item.name}</Text>
-    </TouchableOpacity>
-  );
 
   return (
     <LinearGradient colors={[colors.background, '#0A1828', colors.primary]} style={styles.gradient}>
@@ -232,6 +250,8 @@ export default function ListFilmsScreen({ navigation }) {
           visible={isFilterModalVisible}
           onClose={() => setIsFilterModalVisible(false)}
           onApplyFilters={handleApplyFilters}
+          genres={genres}
+          currentFilters={activeFilters}
         />
         <View style={styles.searchContainer}>
             <TextInput
@@ -245,17 +265,9 @@ export default function ListFilmsScreen({ navigation }) {
                 <Text style={styles.filterIcon}>📊</Text>
             </TouchableOpacity>
         </View>
-        <View>
-          <FlatList
-            data={genres}
-            keyExtractor={(item) => item.id?.toString() || 'populares'}
-            renderItem={renderGenre}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.genresContainer}
-          />
-        </View>
+        
         {renderContent()}
+        
         <View style={styles.fabContainer}>
             <TouchableOpacity style={styles.fabButton} onPress={() => navigation.navigate('Novo Filme')}>
                 <Text style={styles.fabIcon}>+</Text>
@@ -274,18 +286,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
   listContainer: { paddingHorizontal: ITEM_MARGIN_HORIZONTAL, paddingTop: 15, paddingBottom: 100 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 15, marginTop: 15 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 15, marginTop: 15, marginBottom: 10 },
   searchInput: { flex: 1, backgroundColor: colors.primary, color: colors.accent, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 25, fontSize: 16 },
   filterButton: { marginLeft: 10, backgroundColor: colors.primary, padding: 12, borderRadius: 25 },
   filterIcon: { fontSize: 20 },
-  genresContainer: { paddingHorizontal: 15, paddingVertical: 10 },
-  genreBadge: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary, borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, marginRight: 10 },
-  genreBadgeSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  genreText: { color: colors.secondary, fontWeight: '600' },
-  genreTextSelected: { color: colors.accent },
   fabContainer: { position: 'absolute', bottom: 45, right: 25, flexDirection: 'row', alignItems: 'center' },
   fabButton: { width: 55, height: 55, borderRadius: 27.5, backgroundColor: 'rgba(65, 90, 119, 0.7)', justifyContent: 'center', alignItems: 'center', marginLeft: 15, elevation: 8 },
   fabIcon: { color: colors.accent, fontSize: 30, fontWeight: 'bold', lineHeight: 32 },
   errorText: { color: colors.danger, fontSize: 18, textAlign: 'center', marginBottom: 20, paddingHorizontal: 20, },
-  retryText: { color: colors.accent, fontSize: 16, fontWeight: 'bold', textDecorationLine: 'underline', }
+  retryText: { color: colors.accent, fontSize: 16, fontWeight: 'bold', textDecorationLine: 'underline', },
+  footerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: ITEM_MARGIN_HORIZONTAL,
+    paddingTop: 15,
+  },
+  emptyText: {
+    color: colors.accent,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  emptySubText: {
+    color: colors.secondary,
+    fontSize: 14,
+    marginTop: 8,
+  }
 });

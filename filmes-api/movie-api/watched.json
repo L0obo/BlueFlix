@@ -84,10 +84,17 @@
     "id": 32
   },
   {
-    "title": "Lilo & Stitch",
+    "title": "Faça Ela Voltar",
     "year": 2025,
-    "posterURL": "/bLQN6DUNYN4NVzSY3Q53JwBRlgV.jpg",
-    "tmdbId": 552524,
-    "id": 42
+    "posterURL": "/yknXRPGfIMmRbWVUxfPuLyCcx7h.jpg",
+    "tmdbId": 1151031,
+    "id": 45
+  },
+  {
+    "title": "Thunderbolts*",
+    "year": 2025,
+    "posterURL": "/6xNX6f1HIq2cQA63vLDEiOqpeTS.jpg",
+    "tmdbId": 986056,
+    "id": 51
   }
 ]

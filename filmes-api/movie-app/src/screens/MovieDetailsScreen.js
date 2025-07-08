@@ -7,11 +7,12 @@ import { createMovie, getMovies, getWatchedMovies, deleteMovie } from '../api/ap
 import { IMAGE_BASE_URL } from '../api/tmdbApi';
 import { colors } from '../styles/colors';
 import MovieDetailsSkeleton from '../components/MovieDetailsSkeleton';
+import BackButton from '../components/BackButton';
 
 const { width } = Dimensions.get('window');
 
 export default function MovieDetailsScreen({ route, navigation }) {
-  const { movieId } = route.params;
+  const { movieId, onGoBack } = route.params; // Recebe a função de callback
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savedStatus, setSavedStatus] = useState('none');
@@ -21,6 +22,40 @@ export default function MovieDetailsScreen({ route, navigation }) {
   const [trailerId, setTrailerId] = useState(null);
   const [watchProviders, setWatchProviders] = useState(null);
   const [isTrailerVisible, setIsTrailerVisible] = useState(false);
+
+  // --- LÓGICA DE ATUALIZAÇÃO AO VOLTAR ---
+  // Este efeito é ativado quando o utilizador está prestes a sair da tela
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Chama a função de callback para atualizar a tela anterior
+      if (onGoBack) {
+        onGoBack();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, onGoBack]);
+
+  const checkIfMovieIsSaved = useCallback(async () => {
+    try {
+      const savedMovies = await getMovies();
+      const watchedMovies = await getWatchedMovies();
+      const watched = watchedMovies.find(m => m.tmdbId === movieId);
+      const saved = savedMovies.find(m => m.tmdbId === movieId);
+
+      if (watched) {
+        setSavedStatus('watched');
+        setLocalMovie(watched);
+      } else if (saved) {
+        setSavedStatus('saved');
+        setLocalMovie(saved);
+      } else {
+        setSavedStatus('none');
+        setLocalMovie(null);
+      }
+    } catch (e) {
+      console.error("Erro ao verificar filmes guardados:", e);
+    }
+  }, [movieId]);
 
   const fetchAllDetails = useCallback(async () => {
     try {
@@ -37,21 +72,7 @@ export default function MovieDetailsScreen({ route, navigation }) {
       setWatchProviders(providers);
 
       if (details) {
-        const savedMovies = await getMovies();
-        const watchedMovies = await getWatchedMovies();
-        const watched = watchedMovies.find(m => m.tmdbId === details.id);
-        const saved = savedMovies.find(m => m.tmdbId === details.id);
-
-        if (watched) {
-          setSavedStatus('watched');
-          setLocalMovie(watched);
-        } else if (saved) {
-          setSavedStatus('saved');
-          setLocalMovie(saved);
-        } else {
-          setSavedStatus('none');
-          setLocalMovie(null);
-        }
+        await checkIfMovieIsSaved();
       }
     } catch (e) {
       console.error("Erro ao buscar detalhes completos:", e);
@@ -59,12 +80,11 @@ export default function MovieDetailsScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
-  }, [movieId]);
+  }, [movieId, checkIfMovieIsSaved]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchAllDetails);
-    return unsubscribe;
-  }, [navigation, fetchAllDetails]);
+    fetchAllDetails();
+  }, [fetchAllDetails]);
 
   const handleToggleSave = async () => {
     setError(null);
@@ -79,8 +99,9 @@ export default function MovieDetailsScreen({ route, navigation }) {
           posterURL: movie.poster_path,
           tmdbId: movie.id,
         };
-        await createMovie(newMovie);
-        await fetchAllDetails();
+        const savedMovie = await createMovie(newMovie);
+        setSavedStatus('saved');
+        setLocalMovie(savedMovie);
       } catch (e) {
         setError(e.message);
       } finally {
@@ -92,7 +113,8 @@ export default function MovieDetailsScreen({ route, navigation }) {
       setIsSaving(true);
       try {
         await deleteMovie(localMovie.id);
-        await fetchAllDetails();
+        setSavedStatus('none');
+        setLocalMovie(null);
       } catch (e) {
         setError(e.message);
       } finally {
@@ -159,17 +181,15 @@ export default function MovieDetailsScreen({ route, navigation }) {
 
                 <Text style={styles.overviewTitle}>Onde Assistir</Text>
                 {watchProviders && watchProviders.link && watchProviders.flatrate ? (
-                    // O contentor já não é clicável
-                    <View style={styles.providersContainer}>
-                        {watchProviders.flatrate.map(provider => (
-                        // Cada logótipo agora é um botão individual
-                        <TouchableOpacity key={provider.provider_id} onPress={() => Linking.openURL(watchProviders.link)}>
-                            <View style={styles.providerBadge}>
+                    <TouchableOpacity onPress={() => Linking.openURL(watchProviders.link)}>
+                        <View style={styles.providersContainer}>
+                            {watchProviders.flatrate.map(provider => (
+                            <View key={provider.provider_id} style={styles.providerBadge}>
                                 <Image source={{ uri: `${IMAGE_BASE_URL}${provider.logo_path}`}} style={styles.providerLogo}/>
                             </View>
-                        </TouchableOpacity>
-                        ))}
-                    </View>
+                            ))}
+                        </View>
+                    </TouchableOpacity>
                 ) : (
                     <Text style={styles.overview}>Não disponível em serviços de streaming no seu país.</Text>
                 )}
@@ -246,7 +266,25 @@ const styles = StyleSheet.create({
     playerContainer: { width: '100%', aspectRatio: 16/9, backgroundColor: '#000', borderRadius: 10, overflow: 'hidden' },
     modalCloseButton: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20, alignSelf: 'flex-end', marginTop: 15 },
     modalCloseText: { color: colors.accent, fontWeight: 'bold', fontSize: 14 },
-    fabContainer: { position: 'absolute', bottom: 45, right: 25, flexDirection: 'row', alignItems: 'center' },
-    fabButton: { width: 55, height: 55, borderRadius: 27.5, backgroundColor: 'rgba(65, 90, 119, 0.7)', justifyContent: 'center', alignItems: 'center', elevation: 8 },
-    fabIcon: { color: colors.accent, fontSize: 30, fontWeight: 'bold', lineHeight: 32 },
+    fabContainer: {
+        position: 'absolute',
+        bottom: 45,
+        right: 25,
+        alignItems: 'center',
+    },
+    fabButton: {
+        width: 55,
+        height: 55,
+        borderRadius: 27.5,
+        backgroundColor: 'rgba(65, 90, 119, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+    },
+    fabIcon: {
+        color: colors.accent,
+        fontSize: 30,
+        fontWeight: 'bold',
+        lineHeight: 32,
+    },
 });
