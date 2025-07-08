@@ -35,14 +35,14 @@ export default function CreateMovieScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.wrapper}>
-    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 40}}>
-      {/* --- MODAL PARA SELECIONAR O ANO --- */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isYearPickerVisible}
-        onRequestClose={() => setIsYearPickerVisible(false)}
-      >
+      <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 40}}>
+        {/* --- MODAL PARA SELECIONAR O ANO --- */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isYearPickerVisible}
+          onRequestClose={() => setIsYearPickerVisible(false)}
+        >
           <View style={styles.modalContainer}>
               <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Selecione o Ano</Text>
@@ -61,42 +61,49 @@ export default function CreateMovieScreen({ navigation }) {
                   </TouchableOpacity>
               </View>
           </View>
-      </Modal>
+        </Modal>
 
-      <Text style={styles.label}>Título do Filme</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Ex: O Poderoso Chefão"
-        placeholderTextColor={colors.secondary}
-      />
+        <Text style={styles.label}>Título do Filme</Text>
+        <TextInput
+          style={styles.input}
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Ex: O Poderoso Chefão"
+          placeholderTextColor={colors.secondary}
+        />
 
-      <Text style={styles.label}>Ano de Lançamento</Text>
-      {/* --- BOTÃO QUE ABRE O SELETOR DE ANO --- */}
-      <TouchableOpacity style={styles.input} onPress={() => setIsYearPickerVisible(true)}>
+        <Text style={styles.label}>Ano de Lançamento</Text>
+        {/* --- BOTÃO QUE ABRE O SELETOR DE ANO --- */}
+        <TouchableOpacity style={styles.input} onPress={() => setIsYearPickerVisible(true)}>
           <Text style={[styles.inputText, !year && styles.placeholderText]}>
               {year || 'Selecione o ano'}
           </Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      <Text style={styles.label}>Caminho do Pôster (Opcional)</Text>
-      <TextInput
-        style={styles.input}
-        value={posterURL}
-        onChangeText={setPosterURL}
-        placeholder="Ex: /3bhkrj58Vtu7enYsRolD1fZdja1.jpg"
-        placeholderTextColor={colors.secondary}
-        autoCapitalize="none"
-      />
-      <Text style={styles.infoText}>
-        Para a capa, use o caminho da imagem do site TMDB, começando com "/".
-      </Text>
+        <Text style={styles.label}>Caminho do Pôster (Opcional)</Text>
+        <TextInput
+          style={styles.input}
+          value={posterURL}
+          onChangeText={setPosterURL}
+          placeholder="Ex: /3bhkrj58Vtu7enYsRolD1fZdja1.jpg"
+          placeholderTextColor={colors.secondary}
+          autoCapitalize="none"
+        />
+        <Text style={styles.infoText}>
+          Para a capa, use o caminho da imagem do site TMDB, começando com "/".
+        </Text>
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Adicionar Filme</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>Adicionar Filme</Text>
+        </TouchableOpacity>
+      </ScrollView>
+      
+      {/* --- BOTÃO VOLTAR (FAB) --- */}
+      <View style={styles.fabContainer}>
+        <TouchableOpacity style={styles.fabButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.fabIcon}>‹</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -111,7 +118,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.primary,
     paddingHorizontal: 15,
-    paddingVertical: 14, // Aumentado para parecer um botão
+    paddingVertical: 14,
     borderRadius: 8,
     marginBottom: 5,
     justifyContent: 'center',
@@ -163,5 +170,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 15,
-  }
+  },
+  // Estilos do botão FAB
+  fabContainer: { 
+    position: 'absolute', 
+    bottom: 45, 
+    right: 25, 
+  },
+  fabButton: { 
+    width: 55, 
+    height: 55, 
+    borderRadius: 27.5, 
+    backgroundColor: 'rgba(65, 90, 119, 0.7)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    elevation: 8 
+  },
+  fabIcon: { 
+    color: colors.accent, 
+    fontSize: 30, 
+    fontWeight: 'bold', 
+    lineHeight: 32 
+  },
 });

@@ -1,5 +1,5 @@
 // movie-app/src/screens/ListFilmsScreen.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, ActivityIndicator, StatusBar, TouchableOpacity, Text, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { discoverMovies, searchMovies, getGenres } from '../api/tmdbApi';
@@ -43,6 +43,10 @@ export default function ListFilmsScreen({ navigation }) {
     ageRating: null,
   });
 
+  // Ref para controlar a primeira renderização e evitar buscas duplicadas
+  const isInitialMount = useRef(true);
+
+  // Efeito para debounce da busca
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -50,35 +54,7 @@ export default function ListFilmsScreen({ navigation }) {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const fetchInitialData = useCallback(async () => {
-    if (!isRefreshing) setInitialLoading(true);
-    setError(null);
-    try {
-      await Promise.all([
-        (async () => {
-          const results = await getGenres();
-          setGenres([{ id: null, name: 'Populares' }, ...results]);
-        })(),
-        (async () => {
-          const saved = await getMovies();
-          const watched = await getWatchedMovies();
-          setMyMovies(saved);
-          setWatchedMovies(watched);
-        })()
-      ]);
-    } catch (e) {
-      console.error("Falha ao carregar dados iniciais:", e);
-      setError("Não foi possível carregar os dados. Verifique a sua conexão.");
-    } finally {
-      setInitialLoading(false);
-    }
-  }, [isRefreshing]);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchInitialData);
-    return unsubscribe;
-  }, [navigation, fetchInitialData]);
-
+  // Função para buscar filmes da API TMDB
   const fetchMovies = useCallback(async (query, filters, pageNum) => {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
@@ -89,16 +65,27 @@ export default function ListFilmsScreen({ navigation }) {
     );
 
     try {
-      let fetchPromise;
-      const isFilterActive = filters.genreId || filters.rating || filters.ageRating;
-      
-      if (query && !isFilterActive) {
-        fetchPromise = searchMovies(query, pageNum);
-      } else {
-        fetchPromise = discoverMovies({ ...filters, page: pageNum });
-      }
+      let results;
 
-      const results = await Promise.race([fetchPromise, timeoutPromise]);
+      if (query) {
+        // Se houver uma consulta de pesquisa, usamos o endpoint de busca.
+        const searchPromise = searchMovies(query, pageNum);
+        results = await Promise.race([searchPromise, timeoutPromise]);
+
+        // Em seguida, aplicamos os filtros do lado do cliente.
+        const isFilterActive = filters.genreId || filters.rating;
+        if (isFilterActive) {
+          results = results.filter(movie => {
+            const genreMatch = filters.genreId ? movie.genre_ids.includes(filters.genreId) : true;
+            const ratingMatch = filters.rating ? movie.vote_average >= filters.rating : true;
+            return genreMatch && ratingMatch;
+          });
+        }
+      } else {
+        // Se não houver consulta de pesquisa, usamos o endpoint de descoberta.
+        const discoverPromise = discoverMovies({ ...filters, page: pageNum });
+        results = await Promise.race([discoverPromise, timeoutPromise]);
+      }
       
       if (results.length === 0) {
         setHasMore(false);
@@ -115,13 +102,62 @@ export default function ListFilmsScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (!initialLoading) {
-      setPage(1);
-      setHasMore(true);
-      fetchMovies(debouncedSearchQuery, activeFilters, 1);
+  // Função para atualizar apenas as listas de filmes do usuário (salvos e assistidos)
+  const updateUserLists = useCallback(async () => {
+    try {
+      const saved = await getMovies();
+      const watched = await getWatchedMovies();
+      setMyMovies(saved);
+      setWatchedMovies(watched);
+    } catch (e) {
+      console.error("Falha ao atualizar as listas de filmes do usuário:", e);
     }
-  }, [debouncedSearchQuery, activeFilters, fetchMovies, initialLoading]);
+  }, []);
+
+  // Efeito para carregar os dados iniciais APENAS UMA VEZ
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setInitialLoading(true);
+      setError(null);
+      try {
+        await Promise.all([
+          (async () => {
+            const results = await getGenres();
+            setGenres([{ id: null, name: 'Populares' }, ...results]);
+          })(),
+          updateUserLists(),
+        ]);
+        await fetchMovies(debouncedSearchQuery, activeFilters, 1);
+      } catch (e) {
+        console.error("Falha ao carregar dados iniciais:", e);
+        setError("Não foi possível carregar os dados. Verifique a sua conexão.");
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, []); // O array vazio [] garante que este efeito rode apenas na montagem do componente
+
+  // Efeito para atualizar as listas do usuário ao focar na tela
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Ao voltar para esta tela, apenas atualiza os status de salvo/assistido
+      updateUserLists();
+    });
+    return unsubscribe;
+  }, [navigation, updateUserLists]);
+
+  // Efeito para buscar filmes quando a busca ou os filtros mudam
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    setPage(1);
+    setHasMore(true);
+    fetchMovies(debouncedSearchQuery, activeFilters, 1);
+  }, [debouncedSearchQuery, activeFilters, fetchMovies]);
 
   const handleLoadMore = () => {
     if (loadingMore || loading || !hasMore) return;
@@ -134,15 +170,22 @@ export default function ListFilmsScreen({ navigation }) {
     setIsRefreshing(true);
     setPage(1);
     setHasMore(true);
-    await Promise.all([
-        fetchInitialData(),
+    setError(null);
+    try {
+      await Promise.all([
+        updateUserLists(),
         fetchMovies(debouncedSearchQuery, activeFilters, 1)
-    ]);
-    setIsRefreshing(false);
-  }, [debouncedSearchQuery, activeFilters, fetchInitialData, fetchMovies]);
+      ]);
+    } catch (error) {
+      setError("Falha ao atualizar. Tente novamente.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [debouncedSearchQuery, activeFilters, fetchMovies, updateUserLists]);
 
   const handleApplyFilters = (newFilters) => {
-    // A linha setSearchQuery('') foi removida daqui
+    setSearchQuery(''); // Limpa o estado da query visual
+    setDebouncedSearchQuery(''); // Limpa imediatamente a query usada para a busca
     setActiveFilters(newFilters);
   };
   
@@ -169,17 +212,17 @@ export default function ListFilmsScreen({ navigation }) {
     if (!movieInMyList) return;
     setSavingMovieId(movieToRemove.id);
     try {
-        await deleteMovie(movieInMyList.id);
-        setMyMovies(prev => prev.filter(m => m.id !== movieInMyList.id));
+      await deleteMovie(movieInMyList.id);
+      setMyMovies(prev => prev.filter(m => m.id !== movieInMyList.id));
     } catch (error) {
-        console.error('Erro ao remover o filme:', error.message);
+      console.error('Erro ao remover o filme:', error.message);
     } finally {
-        setSavingMovieId(null);
+      setSavingMovieId(null);
     }
   };
 
   const renderContent = () => {
-    if (loading || initialLoading) {
+    if (initialLoading) { // Apenas `initialLoading` para o esqueleto inicial
       return (
         <FlatList
           data={SKELETON_DATA}
@@ -298,7 +341,7 @@ const styles = StyleSheet.create({
   footerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: ITEM_MARGIN_HORIZONTAL,
+    paddingHorizontal: '',
     paddingTop: 15,
   },
   emptyText: {
