@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, FlatList, Text, StyleSheet, ActivityIndicator, StatusBar, TextInput, TouchableOpacity, Modal, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from '@react-navigation/native'; // 1. Importar o hook
 import { getMovies, deleteMovie, addWatchedMovie } from '../api/api';
 import MovieItem from '../components/MovieItem';
 import MovieItemSkeleton from '../components/MovieItemSkeleton';
@@ -20,25 +21,37 @@ export default function ViewMovieScreen({ navigation }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isMovingMovie, setIsMovingMovie] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isFocused = useIsFocused(); // 2. Usar o hook
 
   const fetchSavedMovies = useCallback(async () => {
     if (!isRefreshing) setLoading(true);
     try {
       const moviesFromApi = await getMovies();
       setAllMovies(moviesFromApi);
-      setFilteredMovies(moviesFromApi);
+      // Mantém a busca atual se houver uma
+      if (searchQuery) {
+        const filtered = moviesFromApi.filter(movie =>
+          movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setFilteredMovies(filtered);
+      } else {
+        setFilteredMovies(moviesFromApi);
+      }
     } catch (error) {
       console.error("Erro ao buscar filmes salvos:", error);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, searchQuery]);
 
-  // Busca os dados na primeira vez que o ecrã é montado
+  // Busca os dados sempre que a tela estiver em foco
   useEffect(() => {
-    fetchSavedMovies();
-  }, []);
+    // 3. Buscar os dados
+    if (isFocused) {
+      fetchSavedMovies();
+    }
+  }, [isFocused, fetchSavedMovies]); // 4. Adicionar 'isFocused' e 'fetchSavedMovies' como dependências
 
   useEffect(() => {
     if (searchQuery === '') {
@@ -67,10 +80,11 @@ export default function ViewMovieScreen({ navigation }) {
         await deleteMovie(recommendedMovie.id);
         
         setIsModalVisible(false);
-        fetchSavedMovies();
+        fetchSavedMovies(); // Recarrega a lista após mover
 
     } catch (error) {
         console.error('Erro ao mover o filme:', error.message);
+    } finally {
         setIsMovingMovie(false);
     }
   };
@@ -82,7 +96,7 @@ export default function ViewMovieScreen({ navigation }) {
       await deleteMovie(movieToWatch.id);
     } catch (error) {
       console.error('Erro ao mover o filme:', error.message);
-      fetchSavedMovies();
+      fetchSavedMovies(); // Recarrega em caso de erro para reverter a UI
     }
   };
 

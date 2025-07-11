@@ -60,8 +60,12 @@ export default function AnimatedMoviesBackground({ children }) {
   useEffect(() => {
     const fetchMoviesForBackground = async () => {
       try {
-        const pagePromises = [1, 2, 3].map(page => discoverMovies({ page }));
+        // --- ALTERAÇÃO APLICADA AQUI ---
+        // Adicionado `include_adult: false` para garantir que a API não retorne conteúdo +18.
+        const pagePromises = [1, 2, 3].map(page => discoverMovies({ page, include_adult: false }));
         const pages = await Promise.all(pagePromises);
+        
+        // O filtro `!m.adult` é mantido como uma segunda camada de segurança.
         const allMovies = pages.flat().filter(m => !m.adult && m.poster_path);
         
         if (allMovies.length > 0) {
@@ -120,8 +124,6 @@ export default function AnimatedMoviesBackground({ children }) {
         )}
       </Animated.View>
       
-      {/* --- CORREÇÃO APLICADA AQUI --- */}
-      {/* O overlay agora é renderizado por baixo do conteúdo (children) */}
       <View style={styles.overlay} />
       {children}
     </View>

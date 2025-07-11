@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, FlatList, Text, StyleSheet, ActivityIndicator, StatusBar, TouchableOpacity, Modal, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from '@react-navigation/native'; // 1. Importar o hook
 import { getWatchedMovies } from '../api/api';
 import MovieItem from '../components/MovieItem';
 import MovieItemSkeleton from '../components/MovieItemSkeleton';
@@ -18,6 +19,7 @@ export default function ValeAPenaVerDeNovoScreen({ navigation }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const isFocused = useIsFocused(); // 2. Usar o hook para saber se a tela está em foco
 
   const fetchWatched = useCallback(async () => {
     if (!isRefreshing) setLoading(true);
@@ -35,8 +37,11 @@ export default function ValeAPenaVerDeNovoScreen({ navigation }) {
   }, [isRefreshing]);
 
   useEffect(() => {
-    fetchWatched();
-  }, []);
+    // 3. Buscar os dados sempre que a tela estiver em foco
+    if (isFocused) {
+      fetchWatched();
+    }
+  }, [isFocused, fetchWatched]); // 4. Adicionar 'isFocused' e 'fetchWatched' como dependências
 
   const handleRecommend = () => {
     if (watchedMovies.length > 0) {
